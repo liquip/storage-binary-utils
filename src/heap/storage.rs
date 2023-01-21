@@ -2,8 +2,6 @@ use crate::util::Serializable;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Error, ErrorKind, Read, Result, Write};
 
-pub const NULL: i64 = -1;
-
 #[derive(Debug)]
 pub struct Storage {
     entries: Vec<StorageDevice>,

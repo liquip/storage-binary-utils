@@ -1,9 +1,9 @@
-pub mod format;
+pub mod heap;
 pub mod meta;
 pub mod util;
 
 use crate::{util::Serializable, meta::{Meta, MetaEntry}};
-use format::{Storage, StorageDevice};
+use heap::storage::{Storage, StorageDevice};
 use std::fs::File;
 
 const HEAP_ALIGN: usize = 1024 * 4;
@@ -22,7 +22,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut fio = File::create("HEAP.bin")?;
     let mut storage = Storage::default();
-    let entry = StorageDevice::new(format::NULL, 0);
+    let entry = StorageDevice::new(heap::NIL, 0);
     storage.push_entry(entry)?;
     storage.write_aligned(&mut fio, HEAP_ALIGN)?;
     drop(fio);
