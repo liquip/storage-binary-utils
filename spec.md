@@ -1,4 +1,4 @@
-# Spec V1
+# Spec Version 1
 
 ## META.bin
 
@@ -24,6 +24,8 @@ Indices into the heap are byte-aligned.
 There are different storage pages that reserve different amounts of pages for themselves.
 
 The most basic page will reserve one page and may store up to 341 items (Item types).
+
+If a pointer is -1 aka NIL (NULL) it points to nothing.
 
 ### Storage
 
@@ -59,6 +61,3 @@ struct StorageItem {
 ### Extended Metadata
 
 > **WIP**
-
-# TODO
-* 818 = 4096 / 5 != 4096 / 9
