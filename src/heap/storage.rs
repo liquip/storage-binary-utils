@@ -1,4 +1,4 @@
-use crate::util::Serializable;
+use crate::util::{read_padding, read_slice, write_padding, Serializable, write_slice};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Error, ErrorKind, Read, Result, Write};
 
@@ -42,29 +42,15 @@ impl Serializable for Storage {
     }
 
     fn read(read: &mut impl Read) -> Result<Self> {
-        for _ in 0..6 {
-            read.read_i8()?;
-        }
-        let length = read.read_i32::<BigEndian>()?;
-        if length > 454 {
-            return Err(Error::new(ErrorKind::Other, "Maximum length is 454"));
-        }
-        let mut entries = Vec::with_capacity(length as _);
-        for _ in 0..length {
-            entries.push(StorageDevice::read(read)?);
-        }
-        Ok(Self { entries })
+        read_padding(read, 6)?;
+        Ok(Self {
+            entries: read_slice(read, 454)?,
+        })
     }
 
     fn write(&self, write: &mut impl Write) -> Result<()> {
-        for _ in 0..6 {
-            write.write_i8(-1)?;
-        }
-        write.write_i32::<BigEndian>(self.entries.len() as _)?;
-        for entry in &self.entries {
-            entry.write(write)?;
-        }
-        Ok(())
+        write_padding(write, 6)?;
+        write_slice(write, &self.entries)
     }
 }
 
@@ -93,7 +79,6 @@ impl Serializable for StorageDevice {
 
     fn write(&self, write: &mut impl Write) -> Result<()> {
         write.write_i64::<BigEndian>(self.ptr)?;
-        write.write_i8(self.page_type)?;
-        Ok(())
+        write.write_i8(self.page_type)
     }
 }

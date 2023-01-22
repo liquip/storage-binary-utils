@@ -2,7 +2,7 @@ pub mod heap;
 pub mod meta;
 pub mod util;
 
-use crate::{util::Serializable, meta::{Meta, MetaEntry}};
+use crate::{meta::Meta, util::Serializable};
 use heap::storage::{Storage, StorageDevice};
 use std::fs::File;
 
@@ -10,9 +10,8 @@ const HEAP_ALIGN: usize = 1024 * 4;
 
 fn main() -> Result<(), std::io::Error> {
     let mut fio = File::create("META.bin")?;
-    let mut meta = Meta::default();
-    let entry = MetaEntry::new("minecraft:stone".to_string(), 0);
-    meta.push_entry(entry)?;
+    let meta = Meta::default();
+    // let entry = MetaEntry::new("minecraft:stone".to_string(), 0);
     meta.write(&mut fio)?;
     drop(fio);
 
