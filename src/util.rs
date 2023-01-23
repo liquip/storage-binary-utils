@@ -25,7 +25,7 @@ pub fn write_bytes(write: &mut impl Write, bytes: &[u8]) -> Result<()> {
     if len > i32::MAX as _ {
         return Err(Error::new(
             ErrorKind::Other,
-            "Maximum length of byte array was exceeded",
+            "Maximum length of slice was exceeded",
         ));
     }
     write.write_i32::<BigEndian>(len as _)?;
@@ -43,6 +43,21 @@ pub fn write_slice<T: Serializable>(write: &mut impl Write, slice: &[T]) -> Resu
     write.write_i32::<BigEndian>(len as _)?;
     for element in slice {
         element.write(write)?;
+    }
+    Ok(())
+}
+
+pub fn write_ptrs(write: &mut impl Write, ptrs: &[i64]) -> Result<()> {
+    let len = ptrs.len();
+    if len > i32::MAX as _ {
+        return Err(Error::new(
+            ErrorKind::Other,
+            "Maximum length of slice was exceeded",
+        ));
+    }
+    write.write_i32::<BigEndian>(len as _)?;
+    for ptr in ptrs {
+        write.write_i64::<BigEndian>(*ptr)?;
     }
     Ok(())
 }
@@ -78,6 +93,24 @@ pub fn read_slice<T: Serializable>(read: &mut impl Read, max_length: i32) -> Res
     let mut buf = Vec::with_capacity(len as _);
     for _ in 0..len {
         buf.push(T::read(read)?);
+    }
+    Ok(buf)
+}
+
+pub fn read_ptrs(read: &mut impl Read, max_length: i32) -> Result<Vec<i64>> {
+    let len = read.read_i32::<BigEndian>()?;
+    if len < 0 {
+        return Err(Error::new(ErrorKind::Other, "Slice with negative length"));
+    }
+    if max_length != -1 && len > max_length {
+        return Err(Error::new(
+            ErrorKind::Other,
+            "Maximum length of slice was exceeded",
+        ));
+    }
+    let mut buf = Vec::with_capacity(len as _);
+    for _ in 0..len {
+        buf.push(read.read_i64::<BigEndian>()?);
     }
     Ok(buf)
 }

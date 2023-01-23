@@ -1,6 +1,7 @@
 use crate::util::{read_slice, read_string, write_bytes, write_slice, Serializable};
 use std::io::{Read, Result, Write};
 
+#[derive(Debug)]
 pub struct MaterialList {
     materials: Vec<Material>,
 }
@@ -25,6 +26,7 @@ impl Serializable for MaterialList {
     }
 }
 
+#[derive(Debug)]
 pub struct Material {
     key: String,
 }
