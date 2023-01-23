@@ -1,6 +1,29 @@
-use crate::util::{read_padding, read_slice, write_padding, write_slice, Serializable};
+use crate::util::{
+    read_padding, read_ptrs, read_slice, write_padding, write_ptrs, write_slice, Serializable,
+};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Error, ErrorKind, Read, Result, Write};
+
+#[derive(Debug)]
+pub struct StorageList {
+    storages: Vec<i64>,
+}
+
+impl Serializable for StorageList {
+    fn size(&self) -> usize {
+        4 + self.storages.len() * 8
+    }
+
+    fn read(read: &mut impl Read) -> Result<Self> {
+        Ok(Self {
+            storages: read_ptrs(read, -1)?,
+        })
+    }
+
+    fn write(&self, write: &mut impl Write) -> Result<()> {
+        write_ptrs(write, &self.storages)
+    }
+}
 
 #[derive(Debug)]
 pub struct Storage {
