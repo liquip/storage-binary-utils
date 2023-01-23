@@ -6,15 +6,15 @@ pub struct MaterialList {
 }
 
 impl Serializable for MaterialList {
-    fn len(&self) -> usize {
-        let mut len = 4;
+    fn size(&self) -> usize {
+        let mut size = 4;
         for material in &self.materials {
-            len += material.len();
+            size += material.size();
         }
-        len
+        size
     }
 
-    fn read(read: &mut impl std::io::Read) -> Result<Self> {
+    fn read(read: &mut impl Read) -> Result<Self> {
         Ok(Self {
             materials: read_slice(read, -1)?,
         })
@@ -30,7 +30,7 @@ pub struct Material {
 }
 
 impl Serializable for Material {
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         4 + self.key.len()
     }
 

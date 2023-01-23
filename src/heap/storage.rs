@@ -1,4 +1,4 @@
-use crate::util::{read_padding, read_slice, write_padding, Serializable, write_slice};
+use crate::util::{read_padding, read_slice, write_padding, write_slice, Serializable};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Error, ErrorKind, Read, Result, Write};
 
@@ -33,12 +33,12 @@ impl Default for Storage {
 }
 
 impl Serializable for Storage {
-    fn len(&self) -> usize {
-        let mut len = 6 + 4;
+    fn size(&self) -> usize {
+        let mut size = 6 + 4;
         for entry in &self.entries {
-            len += entry.len();
+            size += entry.size();
         }
-        len
+        size
     }
 
     fn read(read: &mut impl Read) -> Result<Self> {
@@ -67,7 +67,7 @@ impl StorageDevice {
 }
 
 impl Serializable for StorageDevice {
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         9
     }
 

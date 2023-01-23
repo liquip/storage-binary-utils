@@ -30,7 +30,7 @@ impl Default for Meta {
 }
 
 impl Serializable for Meta {
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         2 + 8 + 8
     }
 
@@ -48,8 +48,7 @@ impl Serializable for Meta {
     fn write(&self, write: &mut impl Write) -> Result<()> {
         write.write_i16::<BigEndian>(self.version)?;
         write.write_i64::<BigEndian>(self.material_list_ptr)?;
-        write.write_i64::<BigEndian>(self.storage_list_ptr)?;
-        Ok(())
+        write.write_i64::<BigEndian>(self.storage_list_ptr)
     }
 }
 
