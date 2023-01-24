@@ -5,7 +5,7 @@ pub mod util;
 use crate::{heap::NIL, meta::Meta, util::Serializable};
 use heap::{
     material::{Material, MaterialList},
-    storage::{Storage, StorageDevice, StorageList},
+    storage::{Storage, StorageDevice, StorageItem, StorageList, StoragePage},
     Heap,
 };
 use std::{fs::File, io::Result};
@@ -26,15 +26,20 @@ fn write() -> Result<()> {
     let mut meta = Meta::default();
 
     let mut material_list = MaterialList::default();
-    material_list
-        .materials
-        .push(Material::new("minecraft:stone".to_string()));
+    let stone_material = material_list.push(Material::new("minecraft:stone".to_string())) as i32;
     let material_list_ptr = heap_io.alloc_end()? as i64;
     material_list.write_aligned(&mut heap_io.source, HEAP_ALIGN)?;
     meta.material_list_ptr = material_list_ptr;
 
+    let mut storage_page = StoragePage::default();
+    storage_page
+        .items
+        .push(StorageItem::new(stone_material, 64000, NIL));
+    let storage_page_ptr = heap_io.alloc_end()? as i64;
+    storage_page.write_aligned(&mut heap_io.source, HEAP_ALIGN)?;
+
     let mut storage = Storage::default();
-    let storage_device = StorageDevice::new(NIL, 0);
+    let storage_device = StorageDevice::new(storage_page_ptr, 0);
     storage.devices.push(storage_device);
     let storage_ptr = heap_io.alloc_end()? as i64;
     storage.write_aligned(&mut heap_io.source, HEAP_ALIGN)?;
@@ -81,6 +86,7 @@ fn read() -> Result<()> {
         meta.storage_list_ptr
     );
     println!("{BLUE}Storage-entries{RST}:");
+    let mut storage_pages = Vec::new();
     for storage_ptr in storage_list.storages.iter().cloned() {
         if storage_ptr == NIL {
             println!("{YLW}warn{RST}: nil storage pointer");
@@ -89,6 +95,33 @@ fn read() -> Result<()> {
         heap_io.seek(storage_ptr as _)?;
         let storage = Storage::read(&mut heap_io.source)?;
         println!("{YLW}@0x{storage_ptr:04X}{RST}: {storage:#?}");
+        for device in &storage.devices {
+            if device.ptr != NIL {
+                storage_pages.push(device.ptr);
+            }
+        }
+    }
+    println!("{BLUE}Storage-pages{RST}:");
+    for storage_page_ptr in storage_pages {
+        heap_io.seek(storage_page_ptr as _)?;
+        let storage_page = StoragePage::read(&mut heap_io.source)?;
+        println!("{YLW}@0x{storage_page_ptr:04X}{RST}: {storage_page:#?}");
+        for StorageItem {
+            material_index,
+            count,
+            meta_ptr,
+        } in &storage_page.items
+        {
+            println!(
+                "{count} of {} with{}",
+                material_list.materials[*material_index as usize].key,
+                if *meta_ptr == NIL {
+                    "out metadata".to_string()
+                } else {
+                    format!(" metadata at @0x{meta_ptr:04X}")
+                }
+            );
+        }
     }
     Ok(())
 }
