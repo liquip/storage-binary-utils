@@ -22,9 +22,9 @@ The version field should be set to 1 for this specification.
 
 The heap is aligned to 4096 byte pages.
 
-Indices into the heap are byte-aligned and **allways** 64-bit, signed integers.
+Indices into the heap are byte-aligned and **always** 64-bit, signed integers.
 
-If a pointer is -1 it points to nothing and is called NIL (NULL in most programming languages).
+If a pointer is -1 it points to nothing and is called `NIL` (`NULL` in most programming languages).
 
 ### Storage
 
@@ -89,4 +89,4 @@ the type of the item.
 `meta_ptr` is a pointer to extended metadata for the item stored on the heap. It is currently not
 being used.
 
-> **This specification is still work-in-progress**
+**This specification is still work-in-progress**
