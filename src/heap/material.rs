@@ -3,7 +3,21 @@ use std::io::{Read, Result, Write};
 
 #[derive(Debug)]
 pub struct MaterialList {
-    materials: Vec<Material>,
+    pub materials: Vec<Material>,
+}
+
+impl MaterialList {
+    pub fn new(materials: Vec<Material>) -> Self {
+        Self { materials }
+    }
+}
+
+impl Default for MaterialList {
+    fn default() -> Self {
+        Self {
+            materials: Vec::with_capacity(0),
+        }
+    }
 }
 
 impl Serializable for MaterialList {
@@ -28,7 +42,13 @@ impl Serializable for MaterialList {
 
 #[derive(Debug)]
 pub struct Material {
-    key: String,
+    pub key: String,
+}
+
+impl Material {
+    pub fn new(key: String) -> Self {
+        Self { key }
+    }
 }
 
 impl Serializable for Material {

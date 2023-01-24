@@ -1,12 +1,24 @@
-use crate::util::{
-    read_padding, read_ptrs, read_slice, write_padding, write_ptrs, write_slice, Serializable,
-};
+use crate::util::{read_ptrs, read_slice, verify_ptr, write_ptrs, write_slice, Serializable};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Error, ErrorKind, Read, Result, Write};
 
 #[derive(Debug)]
 pub struct StorageList {
-    storages: Vec<i64>,
+    pub storages: Vec<i64>,
+}
+
+impl StorageList {
+    pub fn new(storages: Vec<i64>) -> Self {
+        Self { storages }
+    }
+}
+
+impl Default for StorageList {
+    fn default() -> Self {
+        Self {
+            storages: Vec::with_capacity(0),
+        }
+    }
 }
 
 impl Serializable for StorageList {
@@ -27,60 +39,50 @@ impl Serializable for StorageList {
 
 #[derive(Debug)]
 pub struct Storage {
-    entries: Vec<StorageDevice>,
+    pub devices: Vec<StorageDevice>,
 }
 
 impl Storage {
-    pub fn new(entries: Vec<StorageDevice>) -> Result<Self> {
-        if entries.len() > 454 {
-            return Err(Error::new(ErrorKind::Other, "Maximum length is 454"));
-        }
-        Ok(Self { entries })
-    }
-
-    pub fn push_entry(&mut self, entry: StorageDevice) -> Result<()> {
-        if self.entries.len() >= 454 {
-            return Err(Error::new(ErrorKind::Other, "Maximum length is 454"));
-        }
-        self.entries.push(entry);
-        Ok(())
+    pub fn new(devices: Vec<StorageDevice>) -> Self {
+        Self { devices }
     }
 }
 
 impl Default for Storage {
     fn default() -> Self {
         Self {
-            entries: Vec::with_capacity(0),
+            devices: Vec::with_capacity(0),
         }
     }
 }
 
 impl Serializable for Storage {
     fn size(&self) -> usize {
-        let mut size = 6 + 4;
-        for entry in &self.entries {
+        let mut size = 4;
+        for entry in &self.devices {
             size += entry.size();
         }
         size
     }
 
     fn read(read: &mut impl Read) -> Result<Self> {
-        read_padding(read, 6)?;
         Ok(Self {
-            entries: read_slice(read, 454)?,
+            devices: read_slice(read, 454)?,
         })
     }
 
     fn write(&self, write: &mut impl Write) -> Result<()> {
-        write_padding(write, 6)?;
-        write_slice(write, &self.entries)
+        if self.devices.len() > 454 {
+            return Err(Error::new(ErrorKind::Other, "Maximum length is 454"));
+        }
+        write_slice(write, &self.devices)
     }
 }
 
 #[derive(Debug)]
 pub struct StorageDevice {
-    ptr: i64,
-    page_type: i8,
+    pub ptr: i64,
+    pub page_type: i8,
 }
 
 impl StorageDevice {
@@ -95,13 +97,65 @@ impl Serializable for StorageDevice {
     }
 
     fn read(read: &mut impl Read) -> Result<Self> {
-        let ptr = read.read_i64::<BigEndian>()?;
-        let page_type = read.read_i8()?;
-        Ok(Self { ptr, page_type })
+        Ok(Self {
+            ptr: verify_ptr(read.read_i64::<BigEndian>()?)?,
+            page_type: read.read_i8()?,
+        })
     }
 
     fn write(&self, write: &mut impl Write) -> Result<()> {
-        write.write_i64::<BigEndian>(self.ptr)?;
+        write.write_i64::<BigEndian>(verify_ptr(self.ptr)?)?;
         write.write_i8(self.page_type)
+    }
+}
+
+#[derive(Debug)]
+pub struct StorageItem {
+    pub material_index: i32,
+    pub count: i64,
+    pub meta_ptr: i64,
+}
+
+impl StorageItem {
+    pub fn new(material_index: i32, count: i64, meta_ptr: i64) -> Self {
+        Self {
+            material_index,
+            count,
+            meta_ptr,
+        }
+    }
+}
+
+impl Serializable for StorageItem {
+    fn size(&self) -> usize {
+        4 + 8 + 8
+    }
+
+    fn read(read: &mut impl Read) -> Result<Self> {
+        let material_index = read.read_i32::<BigEndian>()?;
+        if material_index < 0 {
+            return Err(Error::new(ErrorKind::Other, "Negative material index"));
+        }
+        let count = read.read_i64::<BigEndian>()?;
+        if count < 1 {
+            return Err(Error::new(ErrorKind::Other, "Too small item count"));
+        }
+        Ok(Self {
+            material_index,
+            count,
+            meta_ptr: verify_ptr(read.read_i64::<BigEndian>()?)?,
+        })
+    }
+
+    fn write(&self, write: &mut impl Write) -> Result<()> {
+        if self.material_index < 0 {
+            return Err(Error::new(ErrorKind::Other, "Negative material index"));
+        }
+        if self.count < 1 {
+            return Err(Error::new(ErrorKind::Other, "Too small item count"));
+        }
+        write.write_i32::<BigEndian>(self.material_index)?;
+        write.write_i64::<BigEndian>(self.count)?;
+        write.write_i64::<BigEndian>(verify_ptr(self.meta_ptr)?)
     }
 }
