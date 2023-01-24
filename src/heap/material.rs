@@ -10,6 +10,11 @@ impl MaterialList {
     pub fn new(materials: Vec<Material>) -> Self {
         Self { materials }
     }
+
+    pub fn push(&mut self, material: Material) -> usize {
+        self.materials.push(material);
+        self.materials.len() - 1
+    }
 }
 
 impl Default for MaterialList {

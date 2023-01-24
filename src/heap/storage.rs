@@ -110,6 +110,45 @@ impl Serializable for StorageDevice {
 }
 
 #[derive(Debug)]
+pub struct StoragePage {
+    pub items: Vec<StorageItem>,
+}
+
+impl StoragePage {
+    pub fn new(items: Vec<StorageItem>) -> Self {
+        Self { items }
+    }
+}
+
+impl Default for StoragePage {
+    fn default() -> Self {
+        Self {
+            items: Vec::with_capacity(0),
+        }
+    }
+}
+
+impl Serializable for StoragePage {
+    fn size(&self) -> usize {
+        let mut size = 4;
+        for item in &self.items {
+            size += item.size();
+        }
+        size
+    }
+
+    fn read(read: &mut impl Read) -> Result<Self> {
+        Ok(Self {
+            items: read_slice(read, -1)?,
+        })
+    }
+
+    fn write(&self, write: &mut impl Write) -> Result<()> {
+        write_slice(write, &self.items)
+    }
+}
+
+#[derive(Debug)]
 pub struct StorageItem {
     pub material_index: i32,
     pub count: i64,
