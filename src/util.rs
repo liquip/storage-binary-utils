@@ -20,6 +20,13 @@ pub trait Serializable: Sized {
     }
 }
 
+pub fn verify_ptr(ptr: i64) -> Result<i64> {
+    if ptr != crate::heap::NIL && ptr < 0 {
+        return Err(Error::new(ErrorKind::Other, "Negative pointer"));
+    }
+    Ok(ptr)
+}
+
 pub fn write_bytes(write: &mut impl Write, bytes: &[u8]) -> Result<()> {
     let len = bytes.len();
     if len > i32::MAX as _ {
@@ -56,15 +63,8 @@ pub fn write_ptrs(write: &mut impl Write, ptrs: &[i64]) -> Result<()> {
         ));
     }
     write.write_i32::<BigEndian>(len as _)?;
-    for ptr in ptrs {
-        write.write_i64::<BigEndian>(*ptr)?;
-    }
-    Ok(())
-}
-
-pub fn write_padding(write: &mut impl Write, size: usize) -> Result<()> {
-    for _ in 0..size {
-        write.write_i8(-1)?;
+    for ptr in ptrs.iter().cloned() {
+        write.write_i64::<BigEndian>(verify_ptr(ptr)?)?;
     }
     Ok(())
 }
@@ -110,16 +110,9 @@ pub fn read_ptrs(read: &mut impl Read, max_length: i32) -> Result<Vec<i64>> {
     }
     let mut buf = Vec::with_capacity(len as _);
     for _ in 0..len {
-        buf.push(read.read_i64::<BigEndian>()?);
+        buf.push(verify_ptr(read.read_i64::<BigEndian>()?)?);
     }
     Ok(buf)
-}
-
-pub fn read_padding(read: &mut impl Read, size: usize) -> Result<()> {
-    for _ in 0..size {
-        read.read_i8()?;
-    }
-    Ok(())
 }
 
 pub const fn align(num: usize, alignment: usize) -> usize {
